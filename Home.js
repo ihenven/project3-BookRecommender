@@ -3,12 +3,13 @@ import { db } from '../services/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import BookCard from '../components/BookCard';
 import axios from 'axios';
+import { getBookSummary } from '../services/openai';
 
 const Home = () => {
     const [name, setName] = useState('')
     const [genre, setGenre] = useState('');
-    const [books, setBooks] = useState([]);
     const [recommendedBooks, setRecommendedBooks] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     const savePreference = async () => {
         await addDoc(collection(db, 'userPreferences'), {
@@ -20,15 +21,23 @@ const Home = () => {
 
     const fetchRecommendations = async () => {
         try {
-            console.log("its working");
-            const response = await axios.get(`https://openlibrary.org/subjects/${genre}.json?limit=5`);
-            const recommendBooks = response.data.works.map(book => ({
-                title: book.title,
-                summary: "Description not available.",
-                link: `https://openlibrary.org${book.key}`
-            }));
+            setLoading(true);
 
-            setBooks(recommendedBooks);
+            const response = await axios.get(`https://openlibrary.org/subjects/${genre}.json?limit=5`);
+            const rawBooks = response.data.works;
+
+            const recommendBooks = await Promise.all(
+                rawBooks.map(async (book) => {
+                    const summary = awari getBookSummary(book.title);
+                    return{
+                        title: book.title,
+                        summary,
+                        link: `https://openlibrary.org${book.key}`,
+                    };
+                })
+            );
+        
+
             setRecommendedBooks(recommendBooks);
             console.log(recommendBooks);
             
@@ -38,9 +47,13 @@ const Home = () => {
                 genre,
                 timestamp: new Date()
             });
+            setRecommendedBooks(recommendBooks);
         }
         catch (error) {
             console.error("Error fetching recommendations:", error);
+        }
+        finally {
+            setLoading(false);
         }
     };
 
@@ -61,6 +74,7 @@ const Home = () => {
                 placeholder="Enter your favorite genre (e.g., fantasy)"
             />
                 <button onClick={fetchRecommendations}>Recommend Books</button>
+                {loading && <p>Loading recommendations...</p>}
                 <div>
                     {books.map((book, idx) => <BookCard key={idx} book={book} />)}
                 </div>
