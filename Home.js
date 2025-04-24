@@ -11,7 +11,7 @@ const Home = () => {
     const [recommendedBooks, setRecommendedBooks] = useState([]);
 
     const savePreference = async () => {
-        await addDoc(collection(db, 'userPreferences"'), {
+        await addDoc(collection(db, 'userPreferences'), {
             name, 
             genre,
             timestamp: new Date()
@@ -20,14 +20,17 @@ const Home = () => {
 
     const fetchRecommendations = async () => {
         try {
-            const response = await axios.get('https://openlibrary.org/subjects/${genre}.json?limit=5');
+            console.log("its working");
+            const response = await axios.get(`https://openlibrary.org/subjects/${genre}.json?limit=5`);
             const recommendBooks = response.data.works.map(book => ({
                 title: book.title,
                 summary: "Description not available.",
-                link: 'https://openlibrary.org${book.key}'
+                link: `https://openlibrary.org${book.key}`
             }));
 
             setBooks(recommendedBooks);
+            setRecommendedBooks(recommendBooks);
+            console.log(recommendBooks);
             
             //save preference and search
             await savePreference();
@@ -43,7 +46,7 @@ const Home = () => {
 
     return (
         <div style = {{ padding: "2rem" }}>
-            <h1> AI- Powered Book Reccomender</h1>
+            <h1>AI-Powered Book Reccomender</h1>
             <input
                 type="text"
                 value={name}
